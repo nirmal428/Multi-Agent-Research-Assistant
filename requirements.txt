@@ -1,0 +1,64 @@
+# ==========================
+# LangChain Core
+# ==========================
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+
+# ==========================
+# LangGraph (Multi-Agent + ReAct)
+# ==========================
+langgraph
+
+# ==========================
+# LLM Providers
+# ==========================
+langchain-groq
+groq
+
+# ==========================
+# Search Tool
+# ==========================
+tavily-python
+
+# ==========================
+# Web Scraping
+# ==========================
+beautifulsoup4
+lxml
+requests
+
+# ==========================
+# Environment Variables
+# ==========================
+python-dotenv
+
+# ==========================
+# Data Validation
+# ==========================
+pydantic
+
+# ==========================
+# Token Counting (Optional)
+# ==========================
+tiktoken
+
+# ==========================
+# Async HTTP (used internally by many libraries)
+# ==========================
+httpx
+aiohttp
+
+# ==========================
+# Utilities
+# ==========================
+typing-extensions
+
+# ==========================
+# Logging / Progress (Optional)
+# ==========================
+rich
+tqdm
+
+streamlit
