@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 llm=ChatGroq(
-    model="llama-3.3-70b-versatile",  
+    model="openai/gpt-oss-safeguard-20b",  
     temperature=0
 )
 
@@ -24,7 +24,8 @@ def build_search_agent():
 def buuild_reader_agent():
     return create_agent(
         model=llm,
-        tools=[scrape_url]
+        tools=[scrape_url],
+        system_prompt="You are a specialized search agent. Your job is to find the best relevant URLs and summaries for a topic."
     )
 
 # writer chain 
@@ -106,3 +107,5 @@ Evaluate the report using the following format:
 ])
 
 critic_chain = critic_prompt | llm | StrOutputParser()
+
+
