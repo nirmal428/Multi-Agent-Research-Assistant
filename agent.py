@@ -3,6 +3,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from tools import web_search , scrape_url
+from tools import web_search, scrape_url
 import os 
 from dotenv import load_dotenv
 
@@ -29,24 +30,60 @@ def buuild_reader_agent():
     )
 
 # writer chain 
-writer_prompt=ChatPromptTemplate.from_messages([
-    ("system","you are an expert research writer. write clear, structured and insightful reports."),
-    ("human","""write a detailed research report on the topic below
-     
-     Topic :{topic}
+writer_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """
+You are an expert research writer.
 
-     research Gathered: {research}
+Create clear, structured, factual, and professional research reports.
 
+Use the provided research and critic feedback.
+Do not invent information.
+"""
+    ),
+    (
+        "human",
+        """
+Write a detailed research report on the topic below.
 
-     Structure of the report as:
-     - Introduction
-     - key Finding (minimum 3 well-explained points)
-     -Conclusion
-     -Sources (list all urls )
+Topic:
+{topic}
 
+Research Gathered:
+{research}
 
-     Be detailed, factual and professional.
-     """)
+Previous Draft:
+{draft}
+
+Critic Feedback:
+{critique}
+
+Structure the final report as:
+
+# Introduction
+
+# Key Findings
+- Finding 1
+- Finding 2
+- Finding 3
+
+# Detailed Analysis
+
+# Conclusion
+
+# Sources
+
+Include all relevant source URLs available in the research.
+
+Requirements:
+- Be factual and professional.
+- Explain important points clearly.
+- Use the research provided.
+- Address the critic's feedback.
+- Do not mention the AI agents or internal pipeline.
+"""
+    )
 ])
 
 writer_chain = writer_prompt | llm | StrOutputParser()

@@ -1,72 +1,305 @@
-from agent import build_search_agent, buuild_reader_agent, writer_chain, critic_chain
+from agent import (
+    build_search_agent,
+    buuild_reader_agent,
+    writer_chain,
+    critic_chain
+)
 
-def run_research_pipeline(topic:str)->dict:
 
-    state={}
+def run_research_pipeline(topic: str) -> dict:
 
-    #search agent working 
-    print("\n"+" ="*50)
-    print("Step 1 - seach agent is working....")
-    print("="*50)
+    print("\n" + "=" * 60)
+    print("MULTI-AGENT RESEARCH PIPELINE")
+    print("=" * 60)
+
+    # ---------------------------------------------------------
+    # State
+    # ---------------------------------------------------------
+
+    state = {
+        "topic": topic,
+        "search_result": None,
+        "sources": [],
+        "research_content": "",
+        "draft": "",
+        "critique": "",
+        "answer": ""
+    }
+
+    # =========================================================
+    # STEP 1 - SEARCH AGENT
+    # =========================================================
+
+    print("\n" + "=" * 60)
+    print("STEP 1 - SEARCH AGENT")
+    print("=" * 60)
 
     search_agent = build_search_agent()
+
     search_result = search_agent.invoke({
-        "messages":[("user",f"Find recent, reliable and detailed information about : {topic}")]
+        "messages": [
+            (
+                "user",
+                f"""
+Research the following topic:
+
+{topic}
+
+Find reliable and relevant information.
+Return useful sources and important information that
+can be used by another agent for writing the final report.
+"""
+            )
+        ]
     })
 
-    state["search_results"] = search_result['messages'][-1].content
+    state["search_result"] = search_result
 
-    print("\n Search Result ",state['search_results'])
+    print("\nSearch agent completed.")
 
-    #step 2 Reader agent
-    print("\n"+" ="*50)
-    print("Step 2 - Reader agent is scraping resources .....")
-    print("="*50)
+    # ---------------------------------------------------------
+    # Extract search content
+    # ---------------------------------------------------------
+
+    if isinstance(search_result, dict):
+
+        messages = search_result.get("messages", [])
+
+        if messages:
+            search_content = messages[-1].content
+
+        else:
+            search_content = str(search_result)
+
+    else:
+        search_content = str(search_result)
+
+    state["research_content"] = search_content
+
+    # ---------------------------------------------------------
+    # Sources
+    # ---------------------------------------------------------
+
+    sources = []
+
+    if isinstance(search_result, dict):
+
+        # If your search agent returns sources
+        sources = search_result.get("sources", [])
+
+        # If sources are inside another key
+        if not sources:
+            sources = search_result.get("urls", [])
+
+    state["sources"] = sources
+
+    print(f"Sources found: {len(sources)}")
+
+    # =========================================================
+    # STEP 2 - READER AGENT
+    # =========================================================
+
+    print("\n" + "=" * 60)
+    print("STEP 2 - READER AGENT")
+    print("=" * 60)
 
     reader_agent = buuild_reader_agent()
+
     reader_result = reader_agent.invoke({
-        "messages":[("user",
-        f"base on the following search resluts about'{topic}',"
-        f"pick the most relevent URL and scrape it for deeper content.\n\n"
-        f"Search Result:\n{state['search_results'][:800]}"
-        )]
+        "messages": [
+            (
+                "user",
+                f"""
+Topic:
+
+{topic}
+
+Here is the information collected by the Search Agent:
+
+{search_content}
+
+Read and analyze this information carefully.
+
+Extract:
+- Important facts
+- Key points
+- Relevant evidence
+- Important statistics
+- Useful information for the final report
+
+Do not add unsupported information.
+"""
+            )
+        ]
     })
 
-    state['scraped_content'] = reader_result['messages'][-1].content
+    print("\nReader agent completed.")
 
-    print("\n Scraped content",state['scraped_content'])
+    # ---------------------------------------------------------
+    # Extract reader output
+    # ---------------------------------------------------------
 
-    #step 3 writer chain
-    print("\n"+" ="*50)
-    print("Step 3 Writer is draftig the report.....")
-    print("="*50)
+    if isinstance(reader_result, dict):
 
-    research_combine = (
-        f"Search Result : \n {state['search_results']}\n\n"
-        f"Detailed Scraped Content : \n {state['scraped_content']}"
-    )
+        messages = reader_result.get("messages", [])
 
-    state["report"] = writer_chain.invoke({
-        "topic":topic,
-        "research":research_combine
+        if messages:
+            reader_content = messages[-1].content
+
+        else:
+            reader_content = str(reader_result)
+
+    else:
+        reader_content = str(reader_result)
+
+    state["research_content"] = reader_content
+
+    # =========================================================
+    # STEP 3 - WRITER
+    # =========================================================
+
+    print("\n" + "=" * 60)
+    print("STEP 3 - WRITER AGENT")
+    print("=" * 60)
+
+    writer_result = writer_chain.invoke({
+        "topic": topic,
+        "research": reader_content
     })
 
-    print("\n Final Report \n ", state["report"])
+    print("\nWriter completed.")
 
-    #critic report 
-    print("\n"+" ="*50)
-    print("Step 4 critic is review the report.....")
-    print("="*50)
+    # ---------------------------------------------------------
+    # Extract writer output
+    # ---------------------------------------------------------
 
-    state["feedback"] = critic_chain.invoke({
-        "report":state["report"]
+    if hasattr(writer_result, "content"):
+        draft = writer_result.content
+
+    elif isinstance(writer_result, dict):
+
+        if "text" in writer_result:
+            draft = writer_result["text"]
+
+        elif "content" in writer_result:
+            draft = writer_result["content"]
+
+        else:
+            draft = str(writer_result)
+
+    else:
+        draft = str(writer_result)
+
+    state["draft"] = draft
+
+    # =========================================================
+    # STEP 4 - CRITIC
+    # =========================================================
+
+    print("\n" + "=" * 50)
+    print("Step 4 - Critic Agent is working...")
+    print("=" * 50)
+
+    critic_result = critic_chain.invoke({
+        "report": draft
     })
-    print("\n Critic Report \n",state["feedback"])
 
-    return state
+    critique = critic_result   
 
+    print("\nCritic feedback generated successfully.")
 
+    # ---------------------------------------------------------
+    # Extract critic output
+    # ---------------------------------------------------------
 
-if __name__ == "__main__":
-    topic = input("\n Enter a reseach topic : ")
-    run_research_pipeline(topic)
+    if hasattr(critic_result, "content"):
+        critique = critic_result.content
+
+    elif isinstance(critic_result, dict):
+
+        if "text" in critic_result:
+            critique = critic_result["text"]
+
+        elif "content" in critic_result:
+            critique = critic_result["content"]
+
+        else:
+            critique = str(critic_result)
+
+    else:
+        critique = str(critic_result)
+
+    state["critique"] = critique
+
+    # =========================================================
+    # STEP 5 - FINAL ANSWER
+    # =========================================================
+
+    print("\n" + "=" * 60)
+    print("STEP 5 - FINAL REPORT")
+    print("=" * 60)
+
+    final_result = writer_chain.invoke({
+        "topic": topic,
+        "research": f"""
+Research:
+
+{reader_content}
+
+Original Draft:
+
+{draft}
+
+Critic Feedback:
+
+{critique}
+
+Rewrite the report using the critic's feedback.
+
+Requirements:
+- Answer the user's topic directly
+- Use the research information
+- Correct issues identified by the critic
+- Do not invent facts
+- Keep the answer clear and structured
+- Include important sources when available
+"""
+    })
+
+    # ---------------------------------------------------------
+    # Extract final answer
+    # ---------------------------------------------------------
+
+    if hasattr(final_result, "content"):
+        final_answer = final_result.content
+
+    elif isinstance(final_result, dict):
+
+        if "text" in final_result:
+            final_answer = final_result["text"]
+
+        elif "content" in final_result:
+            final_answer = final_result["content"]
+
+        else:
+            final_answer = str(final_result)
+
+    else:
+        final_answer = str(final_result)
+
+    state["answer"] = final_answer
+
+    print("\nFinal report generated successfully.")
+
+    # =========================================================
+    # RETURN RESULT
+    # =========================================================
+
+    return {
+        "topic": topic,
+        "answer": final_answer,
+        "sources": sources,
+        "research": reader_content,
+        "draft": draft,
+        "critique": critique
+    }

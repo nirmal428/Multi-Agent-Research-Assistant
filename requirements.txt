@@ -62,3 +62,6 @@ rich
 tqdm
 
 streamlit
+
+langchain-huggingface
+sentence-transformers
